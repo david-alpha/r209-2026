@@ -1,0 +1,14 @@
+{ "Nom":"Hugo",
+  "Prénom":"Victor",
+  "DateNaissance":"26/02/1802",
+  "Enfants":[
+  { "Nom":"Hugo",
+    "Prénom":"Léopoldine",
+	"DateNaissance":"28/08/1824"
+  },
+  { "Nom":"Hugo",
+    "Prénom":"Adèle",
+	"DateNaissance":"24/08/1830"
+  }  
+  ]
+}  

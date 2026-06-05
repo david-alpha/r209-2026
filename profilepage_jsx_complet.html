@@ -1,0 +1,180 @@
+
+<style>
+pre { background: #1a1a2e; color: #e2e8f0; border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; font-size: 13px; line-height: 1.7; overflow-x: auto; margin: 0; font-family: var(--font-mono); }
+.kw { color: #93c5fd; } .fn { color: #86efac; } .str { color: #fcd34d; } .cmt { color: #94a3b8; font-style: italic; } .tag { color: #f9a8d4; } .attr { color: #93c5fd; } .val { color: #fcd34d; }
+</style>
+<pre><code><span class="cmt">// src/pages/ProfilePage.jsx</span>
+<span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { supabase } <span class="kw">from</span> <span class="str">'../lib/supabase'</span>;
+<span class="kw">import</span> Navbar <span class="kw">from</span> <span class="str">'../components/Navbar'</span>;
+
+<span class="kw">export default function</span> <span class="fn">ProfilePage</span>({ session }) {
+  <span class="kw">const</span> user = session.user;
+
+  <span class="cmt">// États infos générales</span>
+  <span class="kw">const</span> [fullName, setFullName]   = <span class="fn">useState</span>(user.user_metadata?.full_name || <span class="str">''</span>);
+  <span class="kw">const</span> [infoMsg, setInfoMsg]     = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [infoErr, setInfoErr]     = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="cmt">// États mot de passe</span>
+  <span class="kw">const</span> [newPass, setNewPass]     = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [passMsg, setPassMsg]     = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [passErr, setPassErr]     = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="cmt">// États avatar</span>
+  <span class="kw">const</span> [avatarUrl, setAvatarUrl] = <span class="fn">useState</span>(user.user_metadata?.avatar_url || <span class="str">''</span>);
+  <span class="kw">const</span> [uploading, setUploading] = <span class="fn">useState</span>(<span class="kw">false</span>);
+
+  <span class="cmt">// ── Sauvegarder le nom ────────────────────────────────</span>
+  <span class="kw">async function</span> <span class="fn">handleSaveInfo</span>(e) {
+    e.<span class="fn">preventDefault</span>();
+    <span class="fn">setInfoErr</span>(<span class="str">''</span>); <span class="fn">setInfoMsg</span>(<span class="str">''</span>);
+    <span class="kw">const</span> { error } = <span class="kw">await</span> supabase.auth.<span class="fn">updateUser</span>({
+      data: { full_name: fullName }
+    });
+    <span class="kw">if</span> (error) <span class="fn">setInfoErr</span>(error.message);
+    <span class="kw">else</span>       <span class="fn">setInfoMsg</span>(<span class="str">'✅ Profil mis à jour !'</span>);
+  }
+
+  <span class="cmt">// ── Changer le mot de passe ───────────────────────────</span>
+  <span class="kw">async function</span> <span class="fn">handleChangePassword</span>(e) {
+    e.<span class="fn">preventDefault</span>();
+    <span class="fn">setPassErr</span>(<span class="str">''</span>); <span class="fn">setPassMsg</span>(<span class="str">''</span>);
+    <span class="kw">if</span> (newPass.length < 6) {
+      <span class="fn">setPassErr</span>(<span class="str">'Le mot de passe doit faire au moins 6 caractères.'</span>);
+      <span class="kw">return</span>;
+    }
+    <span class="kw">const</span> { error } = <span class="kw">await</span> supabase.auth.<span class="fn">updateUser</span>({ password: newPass });
+    <span class="kw">if</span> (error) <span class="fn">setPassErr</span>(error.message);
+    <span class="kw">else</span>     { <span class="fn">setPassMsg</span>(<span class="str">'✅ Mot de passe mis à jour !'</span>); <span class="fn">setNewPass</span>(<span class="str">''</span>); }
+  }
+
+  <span class="cmt">// ── Upload avatar ─────────────────────────────────────</span>
+  <span class="kw">async function</span> <span class="fn">handleAvatarUpload</span>(e) {
+    <span class="kw">const</span> file = e.target.files[<span class="str">0</span>];
+    <span class="kw">if</span> (!file) <span class="kw">return</span>;
+    <span class="fn">setUploading</span>(<span class="kw">true</span>);
+
+    <span class="kw">const</span> filePath = <span class="str">`</span>${user.id}<span class="str">/avatar.</span>${file.name.<span class="fn">split</span>(<span class="str">'.'</span>).<span class="fn">pop</span>()}<span class="str">`</span>;
+
+    <span class="kw">const</span> { error: uploadError } = <span class="kw">await</span> supabase.storage
+      .<span class="fn">from</span>(<span class="str">'avatars'</span>)
+      .<span class="fn">upload</span>(filePath, file, { upsert: <span class="kw">true</span> });
+
+    <span class="kw">if</span> (uploadError) {
+      <span class="fn">alert</span>(<span class="str">'Erreur upload : '</span> + uploadError.message);
+      <span class="fn">setUploading</span>(<span class="kw">false</span>);
+      <span class="kw">return</span>;
+    }
+
+    <span class="kw">const</span> { data } = supabase.storage.<span class="fn">from</span>(<span class="str">'avatars'</span>).<span class="fn">getPublicUrl</span>(filePath);
+    <span class="kw">const</span> publicUrl = data.publicUrl;
+
+    <span class="kw">await</span> supabase.auth.<span class="fn">updateUser</span>({ data: { avatar_url: publicUrl } });
+    <span class="fn">setAvatarUrl</span>(publicUrl);
+    <span class="fn">setUploading</span>(<span class="kw">false</span>);
+  }
+
+  <span class="cmt">// ── JSX ───────────────────────────────────────────────</span>
+  <span class="kw">return</span> (
+    <span class="tag">&lt;div</span> <span class="attr">style</span>=<span class="val">{{ minHeight: '100vh', background: '#F8FAFC' }}</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;Navbar</span> <span class="attr">session</span>=<span class="val">{session}</span> <span class="tag">/&gt;</span>
+
+      <span class="tag">&lt;main</span> <span class="attr">style</span>=<span class="val">{{ maxWidth: '600px', margin: '2rem auto', padding: '0 1rem' }}</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;h1</span> <span class="attr">style</span>=<span class="val">{{ marginBottom: '2rem' }}</span><span class="tag">&gt;</span>Mon profil<span class="tag">&lt;/h1&gt;</span>
+
+        <span class="cmt">{/* ── Section avatar ── */}</span>
+        <span class="tag">&lt;section</span> <span class="attr">style</span>=<span class="val">{{ marginBottom: '2rem', textAlign: 'center' }}</span><span class="tag">&gt;</span>
+          <span class="tag">&lt;div</span> <span class="attr">style</span>=<span class="val">{{
+            width: '96px', height: '96px', borderRadius: '50%',
+            overflow: 'hidden', margin: '0 auto 1rem',
+            background: '#CBD5E1', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: '2.5rem'
+          }}</span><span class="tag">&gt;</span>
+            {avatarUrl
+              ? <span class="tag">&lt;img</span> <span class="attr">src</span>=<span class="val">{avatarUrl}</span> <span class="attr">alt</span>=<span class="val">"avatar"</span>
+                     <span class="attr">style</span>=<span class="val">{{ width: '100%', height: '100%', objectFit: 'cover' }}</span> <span class="tag">/&gt;</span>
+              : <span class="tag">&lt;span&gt;</span>👤<span class="tag">&lt;/span&gt;</span>
+            }
+          <span class="tag">&lt;/div&gt;</span>
+          <span class="tag">&lt;label</span> <span class="attr">style</span>=<span class="val">{{ cursor: 'pointer', color: '#1A8C82', fontWeight: 500 }}</span><span class="tag">&gt;</span>
+            {uploading ? <span class="str">'Envoi en cours...'</span> : <span class="str">'Changer la photo'</span>}
+            <span class="tag">&lt;input</span> <span class="attr">type</span>=<span class="val">"file"</span> <span class="attr">accept</span>=<span class="val">"image/*"</span>
+                   <span class="attr">style</span>=<span class="val">{{ display: 'none' }}</span>
+                   <span class="attr">onChange</span>=<span class="val">{handleAvatarUpload}</span>
+                   <span class="attr">disabled</span>=<span class="val">{uploading}</span> <span class="tag">/&gt;</span>
+          <span class="tag">&lt;/label&gt;</span>
+        <span class="tag">&lt;/section&gt;</span>
+
+        <span class="cmt">{/* ── Section infos générales ── */}</span>
+        <span class="tag">&lt;section</span> <span class="attr">style</span>=<span class="val">{{ background: '#fff', borderRadius: '12px',
+          padding: '1.5rem', marginBottom: '1.5rem',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}</span><span class="tag">&gt;</span>
+          <span class="tag">&lt;h2</span> <span class="attr">style</span>=<span class="val">{{ marginBottom: '1rem', fontSize: '1.1rem' }}</span><span class="tag">&gt;</span>
+            Informations générales
+          <span class="tag">&lt;/h2&gt;</span>
+          <span class="tag">&lt;p</span> <span class="attr">style</span>=<span class="val">{{ color: '#64748B', marginBottom: '1rem' }}</span><span class="tag">&gt;</span>
+            Email : {user.email}
+          <span class="tag">&lt;/p&gt;</span>
+          <span class="tag">&lt;form</span> <span class="attr">onSubmit</span>=<span class="val">{handleSaveInfo}</span><span class="tag">&gt;</span>
+            <span class="tag">&lt;label</span> <span class="attr">style</span>=<span class="val">{{ display: 'block', marginBottom: '0.5rem',
+              fontSize: '0.9rem', color: '#475569' }}</span><span class="tag">&gt;</span>
+              Nom complet
+            <span class="tag">&lt;/label&gt;</span>
+            <span class="tag">&lt;input</span>
+              <span class="attr">type</span>=<span class="val">"text"</span>
+              <span class="attr">value</span>=<span class="val">{fullName}</span>
+              <span class="attr">onChange</span>=<span class="val">{e => setFullName(e.target.value)}</span>
+              <span class="attr">style</span>=<span class="val">{{ width: '100%', padding: '0.6rem 0.8rem',
+                border: '1px solid #CBD5E1', borderRadius: '8px',
+                marginBottom: '1rem', fontSize: '1rem', boxSizing: 'border-box' }}</span>
+            <span class="tag">/&gt;</span>
+            {infoErr &amp;&amp; <span class="tag">&lt;p</span> <span class="attr">style</span>=<span class="val">{{ color: '#DC2626', marginBottom: '0.5rem' }}</span><span class="tag">&gt;</span>{infoErr}<span class="tag">&lt;/p&gt;</span>}
+            {infoMsg &amp;&amp; <span class="tag">&lt;p</span> <span class="attr">style</span>=<span class="val">{{ color: '#16A34A', marginBottom: '0.5rem' }}</span><span class="tag">&gt;</span>{infoMsg}<span class="tag">&lt;/p&gt;</span>}
+            <span class="tag">&lt;button</span> <span class="attr">type</span>=<span class="val">"submit"</span>
+              <span class="attr">style</span>=<span class="val">{{ background: '#1A8C82', color: '#fff',
+                border: 'none', borderRadius: '8px',
+                padding: '0.6rem 1.4rem', cursor: 'pointer', fontSize: '1rem' }}</span><span class="tag">&gt;</span>
+              Sauvegarder
+            <span class="tag">&lt;/button&gt;</span>
+          <span class="tag">&lt;/form&gt;</span>
+        <span class="tag">&lt;/section&gt;</span>
+
+        <span class="cmt">{/* ── Section mot de passe ── */}</span>
+        <span class="tag">&lt;section</span> <span class="attr">style</span>=<span class="val">{{ background: '#fff', borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}</span><span class="tag">&gt;</span>
+          <span class="tag">&lt;h2</span> <span class="attr">style</span>=<span class="val">{{ marginBottom: '1rem', fontSize: '1.1rem' }}</span><span class="tag">&gt;</span>
+            Changer le mot de passe
+          <span class="tag">&lt;/h2&gt;</span>
+          <span class="tag">&lt;form</span> <span class="attr">onSubmit</span>=<span class="val">{handleChangePassword}</span><span class="tag">&gt;</span>
+            <span class="tag">&lt;label</span> <span class="attr">style</span>=<span class="val">{{ display: 'block', marginBottom: '0.5rem',
+              fontSize: '0.9rem', color: '#475569' }}</span><span class="tag">&gt;</span>
+              Nouveau mot de passe
+            <span class="tag">&lt;/label&gt;</span>
+            <span class="tag">&lt;input</span>
+              <span class="attr">type</span>=<span class="val">"password"</span>
+              <span class="attr">value</span>=<span class="val">{newPass}</span>
+              <span class="attr">onChange</span>=<span class="val">{e => setNewPass(e.target.value)}</span>
+              <span class="attr">placeholder</span>=<span class="val">"6 caractères minimum"</span>
+              <span class="attr">style</span>=<span class="val">{{ width: '100%', padding: '0.6rem 0.8rem',
+                border: '1px solid #CBD5E1', borderRadius: '8px',
+                marginBottom: '1rem', fontSize: '1rem', boxSizing: 'border-box' }}</span>
+            <span class="tag">/&gt;</span>
+            {passErr &amp;&amp; <span class="tag">&lt;p</span> <span class="attr">style</span>=<span class="val">{{ color: '#DC2626', marginBottom: '0.5rem' }}</span><span class="tag">&gt;</span>{passErr}<span class="tag">&lt;/p&gt;</span>}
+            {passMsg &amp;&amp; <span class="tag">&lt;p</span> <span class="attr">style</span>=<span class="val">{{ color: '#16A34A', marginBottom: '0.5rem' }}</span><span class="tag">&gt;</span>{passMsg}<span class="tag">&lt;/p&gt;</span>}
+            <span class="tag">&lt;button</span> <span class="attr">type</span>=<span class="val">"submit"</span>
+              <span class="attr">style</span>=<span class="val">{{ background: '#1A8C82', color: '#fff',
+                border: 'none', borderRadius: '8px',
+                padding: '0.6rem 1.4rem', cursor: 'pointer', fontSize: '1rem' }}</span><span class="tag">&gt;</span>
+              Mettre à jour
+            <span class="tag">&lt;/button&gt;</span>
+          <span class="tag">&lt;/form&gt;</span>
+        <span class="tag">&lt;/section&gt;</span>
+
+      <span class="tag">&lt;/main&gt;</span>
+    <span class="tag">&lt;/div&gt;</span>
+  );
+}
+</code></pre>

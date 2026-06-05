@@ -1,0 +1,82 @@
+
+<style>
+pre { background: #1a1a2e; color: #e2e8f0; border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; font-size: 13px; line-height: 1.7; overflow-x: auto; margin: 0; font-family: var(--font-mono); }
+.kw { color: #93c5fd; } .fn { color: #86efac; } .str { color: #fcd34d; } .cmt { color: #94a3b8; font-style: italic; } .tag { color: #f9a8d4; } .attr { color: #93c5fd; } .val { color: #fcd34d; }
+</style>
+<pre><code><span class="cmt">// src/components/Navbar.jsx</span>
+<span class="kw">import</span> { Link, useLocation } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { supabase } <span class="kw">from</span> <span class="str">'../lib/supabase'</span>;
+
+<span class="kw">export default function</span> <span class="fn">Navbar</span>({ session }) {
+  <span class="kw">const</span> location = <span class="fn">useLocation</span>();
+
+  <span class="kw">async function</span> <span class="fn">handleLogout</span>() {
+    <span class="kw">await</span> supabase.auth.<span class="fn">signOut</span>();
+    <span class="cmt">// App.jsx détecte session=null → redirige /login automatiquement</span>
+  }
+
+  <span class="kw">function</span> <span class="fn">linkStyle</span>(path) {
+    <span class="kw">const</span> isActive = location.pathname === path;
+    <span class="kw">return</span> {
+      padding: <span class="str">'0.5rem 1rem'</span>,
+      borderRadius: <span class="str">'6px'</span>,
+      textDecoration: <span class="str">'none'</span>,
+      fontWeight: isActive ? <span class="str">700</span> : <span class="str">400</span>,
+      background: isActive ? <span class="str">'rgba(255,255,255,0.2)'</span> : <span class="str">'transparent'</span>,
+      color: <span class="str">'white'</span>,
+    };
+  }
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;nav</span> <span class="attr">style</span>=<span class="val">{{
+      background: <span class="str">'#1A8C82'</span>,
+      padding: <span class="str">'0 2rem'</span>,
+      display: <span class="str">'flex'</span>,
+      alignItems: <span class="str">'center'</span>,
+      justifyContent: <span class="str">'space-between'</span>,
+      height: <span class="str">'56px'</span>,
+      boxShadow: <span class="str">'0 2px 8px rgba(0,0,0,0.15)'</span>,
+    }}</span><span class="tag">&gt;</span>
+
+      <span class="cmt">{/* ── Logo / titre ── */}</span>
+      <span class="tag">&lt;span</span> <span class="attr">style</span>=<span class="val">{{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}</span><span class="tag">&gt;</span>
+        KanbanRT
+      <span class="tag">&lt;/span&gt;</span>
+
+      <span class="cmt">{/* ── Liens de navigation ── */}</span>
+      <span class="tag">&lt;div</span> <span class="attr">style</span>=<span class="val">{{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;Link</span> <span class="attr">to</span>=<span class="val">"/dashboard"</span> <span class="attr">style</span>=<span class="val">{linkStyle('/dashboard')}</span><span class="tag">&gt;</span>
+          Tableau de bord
+        <span class="tag">&lt;/Link&gt;</span>
+
+        <span class="tag">&lt;Link</span> <span class="attr">to</span>=<span class="val">"/profile"</span> <span class="attr">style</span>=<span class="val">{linkStyle('/profile')}</span><span class="tag">&gt;</span>
+          Mon profil
+        <span class="tag">&lt;/Link&gt;</span>
+      <span class="tag">&lt;/div&gt;</span>
+
+      <span class="cmt">{/* ── Email + bouton déconnexion ── */}</span>
+      <span class="tag">&lt;div</span> <span class="attr">style</span>=<span class="val">{{ display: 'flex', alignItems: 'center', gap: '1rem' }}</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;span</span> <span class="attr">style</span>=<span class="val">{{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem' }}</span><span class="tag">&gt;</span>
+          {session?.user?.email}
+        <span class="tag">&lt;/span&gt;</span>
+
+        <span class="tag">&lt;button</span>
+          <span class="attr">onClick</span>=<span class="val">{handleLogout}</span>
+          <span class="attr">style</span>=<span class="val">{{
+            background: 'rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            color: 'white',
+            borderRadius: '6px',
+            padding: '0.4rem 0.9rem',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+          }}</span>
+        <span class="tag">&gt;</span>
+          Déconnexion
+        <span class="tag">&lt;/button&gt;</span>
+      <span class="tag">&lt;/div&gt;</span>
+
+    <span class="tag">&lt;/nav&gt;</span>
+  );
+}
+</code></pre>
